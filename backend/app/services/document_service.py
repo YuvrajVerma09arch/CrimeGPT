@@ -1,0 +1,220 @@
+"""Document generation engine: DOCX via docxtpl, PDF via WeasyPrint HTML.
+
+Both output formats are driven by the same declarative DOC_SPECS so the
+DOCX templates and the HTML/PDF rendering never drift apart.
+"""
+from __future__ import annotations
+
+import io
+import zipfile
+from datetime import date, time
+from pathlib import Path
+
+from docxtpl import DocxTemplate
+from fastapi import HTTPException
+from jinja2 import Environment
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.config import settings
+from app.models.case import Case, DiaryEntry
+from app.models.document import Document
+from app.schemas.document import DOC_TYPES
+from app.services import case_service
+from app.templates.build_templates import TEMPLATE_DIR, build_all
+from app.templates.doc_specs import DOC_SPECS
+from app.utils.pdf import PDF_CSS, html_to_pdf
+
+TEMPLATE_MAP: dict[str, Path] = {t: TEMPLATE_DIR / f"{t.lower()}.docx" for t in DOC_TYPES}
+
+_jinja_env = Environment(autoescape=True)
+
+
+def ensure_templates() -> None:
+    """Build any missing .docx templates programmatically (idempotent)."""
+    build_all(force=False)
+
+
+def _fmt_date(value: date | None) -> str:
+    """Format a date as dd-mm-YYYY, empty string when None."""
+    return value.strftime("%d-%m-%Y") if value else ""
+
+
+def _fmt_time(value: time | None) -> str:
+    """Format a time as HH:MM, empty string when None."""
+    return value.strftime("%H:%M") if value else ""
+
+
+def build_context(case: Case) -> dict:
+    """Build the flat template context dict from the unified case data pool.
+
+    Safe against missing data: first accused/victim fields and IO fields
+    default to empty strings; dates are formatted dd-mm-YYYY.
+    """
+    accused = [p for p in case.persons if p.role == "ACCUSED"]
+    victims = [p for p in case.persons if p.role == "VICTIM"]
+    witnesses = [p for p in case.persons if p.role == "WITNESS"]
+
+    return {
+        # Header fields (shared across all docs)
+        "fir_number": case.fir_number,
+        "ps_name": case.ps_name or "",
+        "station": case.station or "",
+        "incident_date": _fmt_date(case.incident_date),
+        "incident_time": _fmt_time(case.incident_time),
+        "incident_place": case.incident_place or "",
+        "crime_type": case.crime_type or "",
+        "narrative_en": case.narrative_en or case.narrative or "",
+        "io_name": case.io.name if case.io else "",
+        "io_badge": case.io.badge_no if case.io else "",
+        # Persons
+        "accused_name": accused[0].name if accused else "",
+        "accused_address": (accused[0].address or "") if accused else "",
+        "accused_age": (accused[0].age or "") if accused else "",
+        "victim_name": victims[0].name if victims else "",
+        "victim_address": (victims[0].address or "") if victims else "",
+        "all_accused": accused,
+        "all_victims": victims,
+        "all_witnesses": witnesses,
+        # Sections
+        "sections_applied": case.sections,
+        "sections_text": ", ".join(f"{s.act} §{s.section}" for s in case.sections),
+        # Seized items
+        "seized_items": case.items,
+        # Dates & status
+        "today": _fmt_date(date.today()),
+        "case_status": case.status or "",
+    }
+
+
+def _html_template(doc_type: str) -> str:
+    """Assemble the HTML Jinja2 template string for a doc type from its spec."""
+    spec = DOC_SPECS[doc_type]
+    parts: list[str] = [
+        "<!DOCTYPE html>",
+        '<html><head><meta charset="utf-8">',
+        f"<style>{PDF_CSS}</style>",
+        "</head><body>",
+    ]
+    for line in spec.get("header", []):
+        parts.append(f'<p style="text-align:center;font-weight:bold;margin:0;">{line}</p>')
+    parts.append(f"<h1>{spec['title']}</h1>")
+    parts.append(f"<h2>{spec['subtitle']}</h2>")
+    parts.append("<hr>")
+
+    parts.append('<table class="meta">')
+    for label, placeholder in spec["meta_rows"]:
+        parts.append(f"<tr><td>{label}</td><td>{placeholder}</td></tr>")
+    parts.append("</table>")
+
+    for text in spec["body_paragraphs"]:
+        parts.append(f'<p class="body-text">{text}</p>')
+
+    table = spec.get("table")
+    if table:
+        parts.append(f'<p class="body-text"><strong>{table["caption"]}</strong></p>')
+        parts.append("<table><thead><tr>")
+        for header, _cell in table["columns"]:
+            parts.append(f"<th>{header}</th>")
+        parts.append("</tr></thead><tbody>")
+        parts.append(f'{{% for {table["loop_var"]} in {table["loop_source"]} %}}<tr>')
+        for _header, cell_placeholder in table["columns"]:
+            parts.append(f"<td>{cell_placeholder}</td>")
+        parts.append("</tr>{% endfor %}")
+        parts.append("</tbody></table>")
+
+    sign_left = spec["sign_left"].replace("\n", "<br>")
+    sign_right = spec["sign_right"].replace("\n", "<br>")
+    parts.append(f'<div class="sign"><div>{sign_left}</div><div>{sign_right}</div></div>')
+    parts.append('<div class="footer">Generated by CrimeGPT on {{ today }}</div>')
+    parts.append("</body></html>")
+    return "".join(parts)
+
+
+def render_html(doc_type: str, context: dict) -> str:
+    """Render the HTML version of a document (used for PDF export)."""
+    if doc_type not in DOC_SPECS:
+        raise HTTPException(status_code=400, detail=f"Unknown document type: {doc_type}")
+    template = _jinja_env.from_string(_html_template(doc_type))
+    return template.render(**context)
+
+
+async def generate_documents(
+    db: AsyncSession, case_id: str, doc_types: list[str], user_id: str
+) -> list[Document]:
+    """Generate DOCX (+ PDF when available) documents for a case.
+
+    Validates requested types, versions each (case, doc_type) pair, writes
+    files under uploads/docs/{case_id}/ and records a case-diary entry.
+    """
+    invalid = [t for t in doc_types if t not in DOC_TYPES]
+    if invalid:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid doc_types: {', '.join(invalid)}. Allowed: {', '.join(DOC_TYPES)}",
+        )
+    if not doc_types:
+        raise HTTPException(status_code=400, detail="doc_types must not be empty")
+
+    case = await case_service.get_case(db, case_id)
+    ensure_templates()
+
+    out_dir = Path(settings.upload_dir) / "docs" / case_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    context = build_context(case)
+    created: list[Document] = []
+
+    for doc_type in doc_types:
+        max_version = await db.scalar(
+            select(func.max(Document.version)).where(
+                Document.case_id == case_id, Document.doc_type == doc_type
+            )
+        )
+        version = (max_version or 0) + 1
+
+        docx_path = out_dir / f"{doc_type}_v{version}.docx"
+        tpl = DocxTemplate(str(TEMPLATE_MAP[doc_type]))
+        tpl.render(context, _jinja_env)
+        tpl.save(str(docx_path))
+
+        pdf_path: str | None = None
+        pdf_candidate = str(docx_path.with_suffix(".pdf"))
+        if html_to_pdf(render_html(doc_type, context), pdf_candidate):
+            pdf_path = pdf_candidate
+
+        document = Document(
+            case_id=case_id,
+            doc_type=doc_type,
+            version=version,
+            docx_path=str(docx_path),
+            pdf_path=pdf_path,
+            generated_by=user_id,
+        )
+        db.add(document)
+        created.append(document)
+
+    db.add(
+        DiaryEntry(
+            case_id=case_id,
+            entry_type="DOCUMENT_GENERATED",
+            description=f"Generated documents: {', '.join(doc_types)}",
+            officer_id=user_id,
+        )
+    )
+
+    await db.commit()
+    for document in created:
+        await db.refresh(document)
+    return created
+
+
+def zip_documents(documents: list[Document]) -> bytes:
+    """Bundle the existing DOCX/PDF files of the given documents into a zip."""
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for document in documents:
+            for path, ext in ((document.docx_path, "docx"), (document.pdf_path, "pdf")):
+                if path and Path(path).exists():
+                    archive.write(path, arcname=f"{document.doc_type}_v{document.version}.{ext}")
+    return buffer.getvalue()

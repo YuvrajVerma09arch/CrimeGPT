@@ -1,0 +1,14 @@
+# Core — service always boots with just these (passthrough engine)
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30
+pydantic>=2.7
+
+# Engine 2 — Google Translate fallback (lightweight, needs internet).
+# Uncomment to enable:
+# deep-translator>=1.11
+
+# Engine 1 — IndicTrans2 (AI4Bharat). HEAVY: ~2GB model download on first
+# run and several GB of RAM at inference time. Uncomment to enable:
+# torch>=2.2
+# transformers>=4.40
+# IndicTransToolkit>=1.0

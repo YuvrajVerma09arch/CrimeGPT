@@ -1,0 +1,114 @@
+[
+  {
+    "title": "D.K. Basu v. State of West Bengal",
+    "court": "Supreme Court",
+    "year": 1997,
+    "summary": "Laid down binding procedural guidelines for arrest and detention, including preparation of an arrest memo attested by a witness, informing a friend or relative of the arrest, and medical examination of the arrestee. Non-compliance can attract departmental action and contempt of court. These requirements now underpin statutory arrest safeguards.",
+    "tags": ["arrest", "custody", "guidelines", "police procedure", "human rights"]
+  },
+  {
+    "title": "Arnesh Kumar v. State of Bihar",
+    "court": "Supreme Court",
+    "year": 2014,
+    "summary": "Held that arrest is not mandatory in offences punishable up to seven years, including matrimonial cruelty cases under Section 498A IPC. Police must record reasons satisfying the necessity checklist under Section 41 CrPC before arresting, and magistrates must scrutinize those reasons before authorizing detention.",
+    "tags": ["arrest", "498a", "necessity", "matrimonial", "notice", "bail"]
+  },
+  {
+    "title": "Lalita Kumari v. Government of Uttar Pradesh",
+    "court": "Supreme Court",
+    "year": 2014,
+    "summary": "A Constitution Bench ruled that registration of an FIR is mandatory when information discloses a cognizable offence, leaving no discretion to the police. A preliminary inquiry is permissible only in limited categories such as matrimonial and commercial disputes, and must be time-bound.",
+    "tags": ["fir", "registration", "cognizable", "preliminary inquiry", "police duty"]
+  },
+  {
+    "title": "Bachan Singh v. State of Punjab",
+    "court": "Supreme Court",
+    "year": 1980,
+    "summary": "Upheld the constitutional validity of the death penalty but confined it to the 'rarest of rare' cases where the alternative of life imprisonment is unquestionably foreclosed. Courts must weigh aggravating and mitigating circumstances relating to both the crime and the criminal.",
+    "tags": ["murder", "death penalty", "rarest of rare", "sentencing"]
+  },
+  {
+    "title": "Machhi Singh v. State of Punjab",
+    "court": "Supreme Court",
+    "year": 1983,
+    "summary": "Concretized the 'rarest of rare' doctrine by listing categories such as the manner of commission, motive, social impact, magnitude, and personality of the victim that may justify capital punishment. It requires a balance sheet of aggravating and mitigating circumstances before imposing death.",
+    "tags": ["murder", "death penalty", "rarest of rare", "sentencing", "aggravating circumstances"]
+  },
+  {
+    "title": "State of Maharashtra v. Sukhdev Singh",
+    "court": "Supreme Court",
+    "year": 1992,
+    "summary": "Arising from the assassination of General Vaidya, the Court examined the evidentiary value of confessions and the standards of proof in terrorism-related prosecutions. It emphasized that confessional statements must be voluntary and corroborated before founding a conviction.",
+    "tags": ["confession", "terrorism", "evidence", "corroboration"]
+  },
+  {
+    "title": "Pulukuri Kottaya v. Emperor",
+    "court": "Supreme Court",
+    "year": 1947,
+    "summary": "The Privy Council decision that defines the scope of Section 27 Evidence Act: only that part of an accused's statement which distinctly relates to the fact discovered is admissible. Discovery of a physical object does not make the entire confessional statement admissible.",
+    "tags": ["discovery", "section 27", "confession", "evidence", "recovery"]
+  },
+  {
+    "title": "Anvar P.V. v. P.K. Basheer",
+    "court": "Supreme Court",
+    "year": 2014,
+    "summary": "Held that secondary electronic evidence is admissible only if accompanied by a certificate under Section 65B(4) of the Evidence Act, overruling earlier lenient practice. CDRs, CCTV footage, and other electronic records produced without the certificate cannot be relied upon.",
+    "tags": ["electronic evidence", "65b", "certificate", "cctv", "cdr", "admissibility"]
+  },
+  {
+    "title": "Arjun Panditrao Khotkar v. Kailash Kushanrao Gorantyal",
+    "court": "Supreme Court",
+    "year": 2020,
+    "summary": "Reaffirmed Anvar P.V. and clarified that the Section 65B(4) certificate is a mandatory precondition for admitting electronic records, unless the original device itself is produced. The certificate may be sought at any stage if the party is unable to obtain it despite efforts.",
+    "tags": ["electronic evidence", "65b", "certificate", "admissibility", "digital"]
+  },
+  {
+    "title": "Sharad Birdhichand Sarda v. State of Maharashtra",
+    "court": "Supreme Court",
+    "year": 1984,
+    "summary": "Laid down the five 'panchsheel' conditions for conviction based on circumstantial evidence: the circumstances must be fully established, consistent only with guilt, conclusive in nature, exclude every other hypothesis, and form a complete chain. Suspicion however strong cannot substitute proof.",
+    "tags": ["circumstantial", "evidence", "murder", "chain of circumstances", "panchsheel"]
+  },
+  {
+    "title": "Joginder Kumar v. State of Uttar Pradesh",
+    "court": "Supreme Court",
+    "year": 1994,
+    "summary": "Held that the power to arrest is distinct from the justification for arrest; an officer must be satisfied that arrest is necessary and reasonable, not merely lawful. The arrestee has the right to have a friend or relative informed, and the arrest must be recorded in the case diary.",
+    "tags": ["arrest", "guidelines", "necessity", "case diary", "rights"]
+  },
+  {
+    "title": "Vishaka v. State of Rajasthan",
+    "court": "Supreme Court",
+    "year": 1997,
+    "summary": "Framed binding guidelines against sexual harassment of women at the workplace in the absence of legislation, drawing on international conventions. The guidelines governed complaints mechanisms and employer duties until the 2013 POSH Act was enacted.",
+    "tags": ["women", "sexual harassment", "workplace", "guidelines"]
+  },
+  {
+    "title": "K.M. Nanavati v. State of Maharashtra",
+    "court": "Supreme Court",
+    "year": 1961,
+    "summary": "The celebrated naval officer case that clarified the exception of grave and sudden provocation to murder. The Court held that the accused's deliberate conduct after learning of the affair showed the act was premeditated, so the provocation exception did not apply.",
+    "tags": ["murder", "provocation", "exception", "culpable homicide", "jury"]
+  },
+  {
+    "title": "Nilabati Behera v. State of Orissa",
+    "court": "Supreme Court",
+    "year": 1993,
+    "summary": "Awarded compensation for a custodial death, holding that the state is strictly liable for violations of Article 21 by its officers and cannot claim sovereign immunity in public law proceedings. Compensation under Articles 32 and 226 is a recognized constitutional remedy.",
+    "tags": ["custody", "custodial death", "compensation", "article 21", "state liability"]
+  },
+  {
+    "title": "Selvi v. State of Karnataka",
+    "court": "Supreme Court",
+    "year": 2010,
+    "summary": "Held that involuntary narcoanalysis, polygraph, and brain-mapping tests violate the right against self-incrimination and personal liberty. Such techniques may be used only with informed consent and per NHRC guidelines, and their results are not themselves admissible as evidence.",
+    "tags": ["narcoanalysis", "polygraph", "self-incrimination", "consent", "investigation"]
+  },
+  {
+    "title": "State of Gujarat v. Kishanbhai",
+    "court": "Supreme Court",
+    "year": 2014,
+    "summary": "Directed that every acquittal must be examined by a standing committee to identify lapses in investigation or prosecution, and that erring officers face departmental action. It institutionalized accountability for faulty investigations and training of investigating officers.",
+    "tags": ["investigation", "acquittal", "accountability", "police training", "prosecution"]
+  }
+]

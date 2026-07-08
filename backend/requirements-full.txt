@@ -1,0 +1,27 @@
+# Full stack — heavy optional dependencies (Docker image installs these).
+# Everything here has a graceful fallback in code if missing.
+-r requirements.txt
+
+# PostgreSQL driver
+asyncpg>=0.29
+
+# RAG vector store (falls back to pure-Python keyword retriever)
+chromadb>=0.5
+
+# OpenAI embeddings + optional narrative summarization
+openai>=1.30
+
+# PDF export (needs system libs: pango, cairo, gdk-pixbuf, fonts-noto-core)
+weasyprint>=62
+
+# Async task queue
+celery[redis]>=5.4
+redis>=5.0
+
+# NER (falls back to rule-based lexicon extractor)
+# After install: python -m spacy download en_core_web_sm
+spacy>=3.7
+
+# OCR (needs system tesseract binary)
+pytesseract>=0.3.10
+Pillow>=10.0
