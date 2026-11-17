@@ -1,0 +1,103 @@
+# docker-compose.prod.yml — production stack
+# Usage: docker compose -f docker-compose.prod.yml up -d --build
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: crimegpt
+      POSTGRES_USER: crimegpt
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # No host port exposed in production — reachable only on the compose network.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crimegpt -d crimegpt"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+    env_file: .env
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://crimegpt:${DB_PASSWORD}@db:5432/crimegpt
+      REDIS_URL: redis://redis:6379
+      TRANSLATION_SERVICE_URL: http://translation:8001
+    volumes:
+      - ./uploads:/app/uploads
+      - ./chroma_db:/app/chroma_db
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  celery:
+    build: ./backend
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=4
+    env_file: .env
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://crimegpt:${DB_PASSWORD}@db:5432/crimegpt
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./uploads:/app/uploads
+      - ./chroma_db:/app/chroma_db
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  translation:
+    build: ./backend/translation_service
+    restart: unless-stopped
+
+  # One-shot builder: compiles the React app into the shared frontend_dist
+  # volume, then exits. Re-run after frontend changes:
+  #   docker compose -f docker-compose.prod.yml run --rm frontend-build
+  frontend-build:
+    image: node:20-alpine
+    working_dir: /app
+    environment:
+      # Empty string -> the build calls the same origin (/api/v1), which
+      # nginx proxies to the backend service.
+      VITE_API_URL: ""
+    volumes:
+      - ./frontend:/app
+      - frontend_dist:/dist
+    command: sh -c "npm ci && npm run build && cp -r dist/* /dist/"
+    restart: "no"
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - frontend_dist:/usr/share/nginx/html:ro
+      # Certbot / Let's Encrypt certificates — uncomment after running certbot
+      # on the host (see docs/deployment.md):
+      # - /etc/letsencrypt/live/crimegpt.example.com/fullchain.pem:/etc/nginx/certs/fullchain.pem:ro
+      # - /etc/letsencrypt/live/crimegpt.example.com/privkey.pem:/etc/nginx/certs/privkey.pem:ro
+      # - /var/www/certbot:/var/www/certbot:ro   # webroot for ACME challenges
+    depends_on:
+      - backend
+      - frontend-build
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  frontend_dist:
